@@ -1,0 +1,44 @@
+# Credenciais
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# Arquivos monitorados e processados
+pasta_monitorada/*.xlsx
+pasta_monitorada/*.xls
+processados/**/*.xlsx
+processados/**/*.xls
+erros/**/*.xlsx
+erros/**/*.xls
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Claude Code local
+.claude/
+
+# Logs locais
+*.log
+logs/
+
+# Certificados SSL (gerados na VM, nunca versionar)
+nginx/certs/*.crt
+nginx/certs/*.key
+nginx/certs/*.pem

@@ -1,0 +1,24 @@
+[Unit]
+Description=FlowETL — Pipeline Excel → SQL Server → Metabase
+Documentation=https://github.com/seu-usuario/flowetl
+After=network.target
+
+[Service]
+Type=simple
+User=flowetl
+Group=flowetl
+WorkingDirectory=/opt/flowetl
+EnvironmentFile=/opt/flowetl/.env
+ExecStart=/opt/flowetl/.venv/bin/python -m bot.watcher
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=flowetl
+
+# Limites de segurança
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

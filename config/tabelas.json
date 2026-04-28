@@ -1,0 +1,27 @@
+{
+  "gproblemas": {
+    "tabela": "tb_problemas_gov_ti",
+    "chave": "numero",
+    "descricao": "Governança de Problemas TI",
+    "aba_excel": "Página4",
+    "colunas_ignorar": [" ", " .1", " .2", " .3", " .4", " .5", " .6", " .7", " .8", " .9", " .10"],
+    "colunas_renomear": {
+      "Número": "numero",
+      "Prioridade": "prioridade",
+      "Descrição": "descricao",
+      "Data": "dt_abertura",
+      "Status": "status",
+      "Data de conclusão": "dt_conclusao",
+      "Gerente responsável": "gerente_responsavel",
+      "Departamento relator": "departamento_relator",
+      "Jornada impactada": "jornada_impactada",
+      "Título": "titulo",
+      "Sistema": "sistema",
+      "Paliativo": "paliativo",
+      "Impacto": "impacto",
+      "Status 14/04": "status_14_04",
+      "Status 17/04": "status_17_04",
+      "Status 22/04": "status_22_04"
+    }
+  }
+}
