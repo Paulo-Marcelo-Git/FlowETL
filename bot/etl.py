@@ -175,7 +175,7 @@ def processar_arquivo(caminho_arquivo: str) -> bool:
             registrar_log_banco(
                 engine=engine,
                 nm_arquivo=nm_arquivo,
-                nm_tabela_destino=nm_tabela if 'nm_tabela' in dir() else 'desconhecida',
+                nm_tabela_destino=nm_tabela,
                 qt_linhas_recebidas=qt_recebidas,
                 qt_linhas_inseridas=0,
                 qt_linhas_rejeitadas=qt_recebidas,

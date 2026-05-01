@@ -6,7 +6,7 @@ Módulo de alertas:
 
 import os
 import smtplib
-from datetime import datetime
+from datetime import datetime, date
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import List, Optional
@@ -14,6 +14,7 @@ from typing import List, Optional
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 from bot.logger import configurar_logger
 
@@ -161,6 +162,38 @@ def enviar_relatorio_diario(resumo: Optional[List[dict]] = None) -> None:
 _scheduler: Optional[BackgroundScheduler] = None
 
 
+def _buscar_resumo_diario() -> List[dict]:
+    """Consulta tb_log_etl e retorna execuções do dia corrente."""
+    try:
+        from bot.database import obter_engine  # import local para evitar ciclo na inicialização
+        engine = obter_engine()
+        sql = text("""
+            SELECT
+                nm_arquivo,
+                nm_tabela_destino,
+                qt_linhas_recebidas,
+                qt_linhas_inseridas,
+                qt_linhas_rejeitadas,
+                ds_status,
+                ds_erro,
+                tm_duracao_seg
+            FROM dbo.tb_log_etl
+            WHERE CAST(dt_processamento AS DATE) = CAST(GETDATE() AS DATE)
+            ORDER BY dt_processamento
+        """)
+        with engine.connect() as conn:
+            rows = conn.execute(sql).mappings().all()
+        return [dict(r) for r in rows]
+    except Exception as exc:
+        logger.error(f'Falha ao buscar resumo diário para e-mail: {exc}')
+        return []
+
+
+def _enviar_relatorio_agendado() -> None:
+    resumo = _buscar_resumo_diario()
+    enviar_relatorio_diario(resumo)
+
+
 def iniciar_scheduler_relatorio() -> None:
     """Inicia o APScheduler para envio do relatório às 8h."""
     global _scheduler
@@ -170,7 +203,7 @@ def iniciar_scheduler_relatorio() -> None:
 
     _scheduler = BackgroundScheduler(timezone='America/Sao_Paulo')
     _scheduler.add_job(
-        func=lambda: enviar_relatorio_diario(),
+        func=_enviar_relatorio_agendado,
         trigger='cron',
         hour=8,
         minute=0,
