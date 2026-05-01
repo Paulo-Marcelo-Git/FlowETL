@@ -2,5 +2,5 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.terminal.useEnvFile": true,
   "python.envFile": "${workspaceFolder}/.env",
-  "git.path": "/usr/bin/git"
+  "git.path": "C:\\Users\\pcs_tf\\AppData\\Local\\GitHubDesktop\\app-3.5.8\\resources\\app\\git\\cmd\\git.exe"
 }
