@@ -109,4 +109,32 @@ FROM dbo.tb_log_etl
 GROUP BY CAST(dt_processamento AS DATE);
 GO
 
-PRINT '7 views KPI criadas/atualizadas com sucesso.';
+-- 8. Problemas agrupados por jornada impactada
+IF OBJECT_ID('dbo.vw_problemas_por_jornada', 'V') IS NOT NULL
+    DROP VIEW dbo.vw_problemas_por_jornada;
+GO
+
+CREATE VIEW dbo.vw_problemas_por_jornada AS
+SELECT
+    ISNULL(jornada_impactada, 'Não informado') AS jornada_impactada,
+    COUNT(*) AS qt_problemas,
+    SUM(CASE WHEN status NOT IN ('Resolvido','Cancelado') THEN 1 ELSE 0 END) AS qt_abertos
+FROM dbo.tb_problemas_gov_ti
+GROUP BY jornada_impactada;
+GO
+
+-- 9. Problemas agrupados por paliativo (Sim / Não)
+IF OBJECT_ID('dbo.vw_problemas_por_paliativo', 'V') IS NOT NULL
+    DROP VIEW dbo.vw_problemas_por_paliativo;
+GO
+
+CREATE VIEW dbo.vw_problemas_por_paliativo AS
+SELECT
+    ISNULL(paliativo, 'Não informado') AS paliativo,
+    COUNT(*) AS qt_problemas,
+    SUM(CASE WHEN status NOT IN ('Resolvido','Cancelado') THEN 1 ELSE 0 END) AS qt_abertos
+FROM dbo.tb_problemas_gov_ti
+GROUP BY paliativo;
+GO
+
+PRINT '9 views KPI criadas/atualizadas com sucesso.';

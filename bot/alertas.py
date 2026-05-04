@@ -195,11 +195,14 @@ def _enviar_relatorio_agendado() -> None:
 
 
 def iniciar_scheduler_relatorio() -> None:
-    """Inicia o APScheduler para envio do relatório às 8h."""
+    """Inicia o APScheduler: relatório diário (08h) + monitor Metabase (5 min)."""
     global _scheduler
 
     if _scheduler and _scheduler.running:
         return
+
+    # import local para evitar ciclo (monitor_metabase → alertas → monitor_metabase)
+    from bot.monitor_metabase import verificar_e_alertar as _monitorar_metabase
 
     _scheduler = BackgroundScheduler(timezone='America/Sao_Paulo')
     _scheduler.add_job(
@@ -210,8 +213,15 @@ def iniciar_scheduler_relatorio() -> None:
         id='relatorio_diario',
         replace_existing=True,
     )
+    _scheduler.add_job(
+        func=_monitorar_metabase,
+        trigger='interval',
+        minutes=5,
+        id='monitor_metabase',
+        replace_existing=True,
+    )
     _scheduler.start()
-    logger.info('Scheduler de relatório diário iniciado (08:00 BRT).')
+    logger.info('Scheduler iniciado: relatório 08:00 BRT | monitor Metabase a cada 5 min.')
 
 
 def parar_scheduler() -> None:
