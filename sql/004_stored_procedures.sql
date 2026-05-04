@@ -37,6 +37,7 @@ BEGIN
             status_14_04,
             status_17_04,
             status_22_04,
+            status_27_04,
             nm_arquivo_origem
         FROM dbo.stg_problemas_gov_ti
         WHERE numero IS NOT NULL
@@ -60,6 +61,7 @@ BEGIN
             destino.status_14_04         = origem.status_14_04,
             destino.status_17_04         = origem.status_17_04,
             destino.status_22_04         = origem.status_22_04,
+            destino.status_27_04         = origem.status_27_04,
             destino.nm_arquivo_origem    = origem.nm_arquivo_origem,
             destino.dt_atualizacao       = GETDATE()
 
@@ -69,7 +71,7 @@ BEGIN
             dt_abertura, dt_conclusao, status,
             gerente_responsavel, departamento_relator,
             jornada_impactada, sistema, paliativo,
-            impacto, status_14_04, status_17_04, status_22_04,
+            impacto, status_14_04, status_17_04, status_22_04, status_27_04,
             nm_arquivo_origem, dt_insert
         )
         VALUES (
@@ -77,7 +79,7 @@ BEGIN
             origem.dt_abertura, origem.dt_conclusao, origem.status,
             origem.gerente_responsavel, origem.departamento_relator,
             origem.jornada_impactada, origem.sistema, origem.paliativo,
-            origem.impacto, origem.status_14_04, origem.status_17_04, origem.status_22_04,
+            origem.impacto, origem.status_14_04, origem.status_17_04, origem.status_22_04, origem.status_27_04,
             origem.nm_arquivo_origem, GETDATE()
         )
 

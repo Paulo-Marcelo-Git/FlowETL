@@ -5,6 +5,7 @@ Fluxo: Excel → staging → SP MERGE → produção → tb_log_etl
 
 import json
 import os
+import re
 import shutil
 import time
 from datetime import datetime
@@ -14,7 +15,7 @@ from typing import Optional
 import pandas as pd
 
 from bot.alertas import alerta_falha_telegram, alerta_sucesso_telegram
-from bot.database import TABELA_CONFIG, carregar_staging, executar_merge, obter_engine
+from bot.database import TABELA_CONFIG, carregar_staging, executar_merge, obter_engine, sincronizar_colunas
 from bot.logger import configurar_logger, registrar_log_banco
 
 logger = configurar_logger(__name__)
@@ -49,15 +50,30 @@ def _mover_arquivo(origem: Path, destino_dir: Path, subpasta: Optional[str] = No
     return destino
 
 
+def _sanitizar_nome_coluna(nome: str) -> str:
+    """Converte nome de coluna para snake_case seguro para SQL."""
+    nome = nome.lower().strip()
+    nome = re.sub(r'[^a-z0-9]', '_', nome)
+    nome = re.sub(r'_+', '_', nome).strip('_')
+    return nome
+
+
 def _limpar_dataframe(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Aplica as regras de limpeza definidas no config da tabela."""
     # Dropar colunas lixo
     colunas_ignorar = cfg.get('colunas_ignorar', [])
     df = df.drop(columns=[c for c in colunas_ignorar if c in df.columns], errors='ignore')
 
-    # Renomear colunas
+    # Renomear colunas mapeadas no config
     colunas_renomear = cfg.get('colunas_renomear', {})
     df = df.rename(columns=colunas_renomear)
+
+    # Sanitizar colunas desconhecidas (não estavam no mapeamento)
+    colunas_mapeadas = set(colunas_renomear.values())
+    novas = {col: _sanitizar_nome_coluna(col) for col in df.columns if col not in colunas_mapeadas}
+    if novas:
+        df = df.rename(columns=novas)
+        logger.info(f'Colunas novas detectadas e sanitizadas: {novas}')
 
     # Dropar linhas completamente vazias
     df = df.dropna(how='all')
@@ -130,7 +146,16 @@ def processar_arquivo(caminho_arquivo: str) -> bool:
         qt_rejeitadas = qt_recebidas - len(df)
         logger.info(f'Após limpeza: {len(df)} linhas válidas, {qt_rejeitadas} rejeitadas.')
 
-        # 8. Inserir na staging
+        # 8a. Sincronizar schema: adiciona colunas novas ao banco automaticamente
+        sincronizar_colunas(
+            df,
+            nm_staging=db_config['staging'],
+            nm_producao=nm_tabela,
+            nm_sp=db_config['sp_merge'],
+            chave=cfg_tabela['chave'],
+        )
+
+        # 8b. Inserir na staging
         carregar_staging(df, db_config['staging'])
 
         # 9. Executar MERGE

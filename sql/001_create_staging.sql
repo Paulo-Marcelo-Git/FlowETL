@@ -24,6 +24,7 @@ BEGIN
         status_14_04        VARCHAR(MAX)    NULL,
         status_17_04        VARCHAR(MAX)    NULL,
         status_22_04        VARCHAR(MAX)    NULL,
+        status_27_04        VARCHAR(MAX)    NULL,
         nm_arquivo_origem   VARCHAR(500)    NULL
     );
 

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileMovedEvent
-from watchdog.observers import Observer
+from watchdog.observers.polling import PollingObserver as Observer  # inotify não funciona em /mnt/c/ no WSL2
 
 from bot.alertas import iniciar_scheduler_relatorio, parar_scheduler
 from bot.etl import processar_arquivo
