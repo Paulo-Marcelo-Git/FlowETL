@@ -12,10 +12,13 @@ Fluxo:
   4. Alerta Telegram se houver erros críticos
 """
 
+import os
 import re
 import subprocess
 from datetime import datetime
 
+import requests
+import urllib3
 from sqlalchemy import text
 
 from bot.alertas import enviar_telegram
@@ -163,6 +166,66 @@ def _gravar_eventos(eventos: list[dict]) -> int:
             except Exception as exc:
                 logger.error(f'Falha ao gravar evento em tb_log_metabase: {exc}')
     return gravados
+
+
+def reescanear_campos_metabase() -> None:
+    """
+    Autentica na API do Metabase e dispara rescan dos valores de campo
+    para todos os bancos cadastrados. Chamado pelo scheduler a cada 5 min.
+
+    Variáveis necessárias no .env:
+      MB_SITE_URL     — ex: https://localhost
+      MB_ADMIN_USER   — e-mail do admin Metabase
+      MB_ADMIN_PASS   — senha do admin Metabase
+    """
+    base_url = (os.getenv('MB_SITE_URL') or '').rstrip('/')
+    usuario  = os.getenv('MB_ADMIN_USER')
+    senha    = os.getenv('MB_ADMIN_PASS')
+
+    if not all([base_url, usuario, senha]):
+        logger.debug('MB_SITE_URL/MB_ADMIN_USER/MB_ADMIN_PASS não configurados — rescan ignorado.')
+        return
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    sessao = requests.Session()
+    sessao.verify = False
+
+    try:
+        resp = sessao.post(
+            f'{base_url}/api/session',
+            json={'username': usuario, 'password': senha},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        token = resp.json().get('id')
+        if not token:
+            logger.warning('Metabase rescan: autenticação retornou sem token.')
+            return
+        sessao.headers.update({'X-Metabase-Session': token})
+    except Exception as exc:
+        logger.error(f'Metabase rescan: falha na autenticação — {exc}')
+        return
+
+    try:
+        dbs = sessao.get(f'{base_url}/api/database', timeout=15).json()
+        db_ids = [d['id'] for d in dbs.get('data', dbs) if isinstance(d, dict)]
+    except Exception as exc:
+        logger.error(f'Metabase rescan: falha ao listar databases — {exc}')
+        return
+
+    rescaneados = 0
+    for db_id in db_ids:
+        try:
+            r = sessao.post(f'{base_url}/api/database/{db_id}/rescan_values', timeout=15)
+            if r.ok:
+                rescaneados += 1
+            else:
+                logger.warning(f'Metabase rescan: database {db_id} retornou HTTP {r.status_code}.')
+        except Exception as exc:
+            logger.warning(f'Metabase rescan: erro no database {db_id} — {exc}')
+
+    if rescaneados:
+        logger.info(f'Metabase rescan: {rescaneados} database(s) rescaneado(s).')
 
 
 def verificar_e_alertar() -> None:

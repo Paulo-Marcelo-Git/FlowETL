@@ -202,7 +202,10 @@ def iniciar_scheduler_relatorio() -> None:
         return
 
     # import local para evitar ciclo (monitor_metabase → alertas → monitor_metabase)
-    from bot.monitor_metabase import verificar_e_alertar as _monitorar_metabase
+    from bot.monitor_metabase import (
+        verificar_e_alertar as _monitorar_metabase,
+        reescanear_campos_metabase as _reescanear_campos,
+    )
 
     _scheduler = BackgroundScheduler(timezone='America/Sao_Paulo')
     _scheduler.add_job(
@@ -220,8 +223,15 @@ def iniciar_scheduler_relatorio() -> None:
         id='monitor_metabase',
         replace_existing=True,
     )
+    _scheduler.add_job(
+        func=_reescanear_campos,
+        trigger='interval',
+        minutes=5,
+        id='rescan_campos_metabase',
+        replace_existing=True,
+    )
     _scheduler.start()
-    logger.info('Scheduler iniciado: relatório 08:00 BRT | monitor Metabase a cada 5 min.')
+    logger.info('Scheduler iniciado: relatório 08:00 BRT | monitor + rescan Metabase a cada 5 min.')
 
 
 def parar_scheduler() -> None:
