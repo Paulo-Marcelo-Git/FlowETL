@@ -15,12 +15,11 @@ Fluxo:
 import re
 import subprocess
 from datetime import datetime
-from typing import List, Dict, Optional
 
 from sqlalchemy import text
 
-from bot.database import obter_engine
 from bot.alertas import enviar_telegram
+from bot.database import obter_engine
 from bot.logger import configurar_logger
 
 logger = configurar_logger(__name__)
@@ -42,11 +41,18 @@ _RELEVANTE = re.compile(
     re.IGNORECASE,
 )
 
+# Módulos/keywords que são RUÍDO do Metabase (não relacionados ao ETL)
+_RUIDO = re.compile(
+    r'SuggestedPromptsGenerator|notification.send|multi-part identifier|'
+    r'lib.convert|breakout|clojure\.lang|api/dashboard|query/compile',
+    re.IGNORECASE,
+)
+
 # Linhas de stack trace que enriquecem o contexto do erro anterior
 _STACK_TRACE = re.compile(r'^\s*(at |Caused by:|com\.microsoft\.|java\.)')
 
 
-def _ler_logs_docker(linhas: int = 2000) -> List[str]:
+def _ler_logs_docker(linhas: int = 2000) -> list[str]:
     """Retorna as últimas N linhas do container Metabase."""
     try:
         result = subprocess.run(
@@ -65,7 +71,7 @@ def _ler_logs_docker(linhas: int = 2000) -> List[str]:
         return []
 
 
-def _ultima_captura() -> Optional[datetime]:
+def _ultima_captura() -> datetime | None:
     """Retorna o dt_evento do último registro gravado em tb_log_metabase."""
     try:
         engine = obter_engine()
@@ -78,12 +84,12 @@ def _ultima_captura() -> Optional[datetime]:
         return None
 
 
-def _parsear_eventos(linhas: List[str], desde: Optional[datetime]) -> List[Dict]:
+def _parsear_eventos(linhas: list[str], desde: datetime | None) -> list[dict]:
     """
     Percorre as linhas e agrupa cada erro com até 5 linhas de stack trace seguintes.
     Filtra apenas eventos posteriores a `desde`.
     """
-    eventos: List[Dict] = []
+    eventos: list[dict] = []
     i = 0
     while i < len(linhas):
         m = _RE_LINHA.match(linhas[i])
@@ -93,6 +99,11 @@ def _parsear_eventos(linhas: List[str], desde: Optional[datetime]) -> List[Dict]
 
         nivel = m.group('nivel')
         msg   = m.group('msg')
+
+        # Ignorar ruído conhecido do Metabase
+        if _RUIDO.search(msg):
+            i += 1
+            continue
 
         # WARNs só entram se forem relevantes para SQL/queries
         if nivel == 'WARN' and not _RELEVANTE.search(msg):
@@ -111,7 +122,7 @@ def _parsear_eventos(linhas: List[str], desde: Optional[datetime]) -> List[Dict]
             continue
 
         # Coletar linhas de stack trace logo abaixo
-        stack: List[str] = []
+        stack: list[str] = []
         j = i + 1
         while j < len(linhas) and j < i + 6 and _STACK_TRACE.match(linhas[j]):
             stack.append(linhas[j].strip())
@@ -133,7 +144,7 @@ def _parsear_eventos(linhas: List[str], desde: Optional[datetime]) -> List[Dict]
     return eventos
 
 
-def _gravar_eventos(eventos: List[Dict]) -> int:
+def _gravar_eventos(eventos: list[dict]) -> int:
     """Insere eventos em tb_log_metabase. Retorna qtd gravada."""
     if not eventos:
         return 0
