@@ -5,6 +5,7 @@ Conexão com SQL Server via SQLAlchemy e operações de banco de dados:
 """
 
 import os
+import re
 from typing import Optional, Tuple
 
 import pandas as pd
@@ -13,6 +14,14 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
 from bot.logger import configurar_logger
+
+_IDENT_RE = re.compile(r'^[A-Za-z0-9_]+$')
+
+
+def _validar_identificador(valor: str, campo: str) -> None:
+    """Garante que nomes usados em SQL dinâmico são alfanuméricos/underscore."""
+    if not _IDENT_RE.match(valor):
+        raise ValueError(f"Identificador inválido para '{campo}': {valor!r}")
 
 load_dotenv()
 
@@ -95,6 +104,10 @@ def executar_merge(nm_sp: str) -> Tuple[int, int]:
 
 def _reconstruir_sp_merge(nm_staging: str, nm_producao: str, nm_sp: str, chave: str) -> None:
     """Reconstrói a SP de MERGE com base nas colunas atuais da tabela staging."""
+    for valor, campo in [(nm_staging, 'nm_staging'), (nm_producao, 'nm_producao'),
+                         (nm_sp, 'nm_sp'), (chave, 'chave')]:
+        _validar_identificador(valor, campo)
+
     engine = obter_engine()
     ignorar = {chave, 'dt_insert', 'dt_atualizacao'}
 
