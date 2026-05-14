@@ -97,6 +97,29 @@ cp .env.example .env
 
 ---
 
+## ⚠️ Segurança — Proteção de Credenciais
+
+**IMPORTANTE:** Nunca faça commit do arquivo `.env` com credenciais reais.
+
+```bash
+# Verificar se .env está ignorado
+git check-ignore -v .env
+
+# Antes de fazer push, sempre validar
+git ls-files | grep ".env$"  # deve retornar vazio
+
+# Se acidentalmente adicionou .env ao staging
+git rm --cached .env
+git reset HEAD .env
+```
+
+**Checklist antes de fazer push:**
+- [ ] Arquivo `.env` está em `.gitignore` ✓
+- [ ] Nenhum `.env` foi commitado (`git log --all -- .env` deve estar vazio)
+- [ ] Credenciais estão apenas em variáveis de ambiente
+
+---
+
 ## Configuração do .env
 
 ```env
