@@ -42,6 +42,3 @@ logs/
 nginx/certs/*.crt
 nginx/certs/*.key
 nginx/certs/*.pem
-
-#Rancar fora
-scripts/criar_dashboard_metabase.py

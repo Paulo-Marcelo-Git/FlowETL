@@ -27,7 +27,7 @@ from bot.logger import configurar_logger
 
 logger = configurar_logger(__name__)
 
-CONTAINER_METABASE = 'metabase'
+CONTAINER_METABASE = os.getenv('CONTAINER_METABASE', 'metabase')
 
 # Formato de linha de log Metabase: "2026-05-04 12:01:46,116 ERROR modulo :: msg"
 _RE_LINHA = re.compile(

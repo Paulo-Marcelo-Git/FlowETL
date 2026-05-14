@@ -33,11 +33,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BASE        = "https://localhost"
-ADMIN_EMAIL = "pcs@tf.com.br"
-ADMIN_SENHA = os.getenv("MSSQL_SA_PASSWORD", "")
-DB_NAME_MB  = "FlowETL - SQL Server"
+BASE        = os.getenv("MB_SITE_URL", "https://localhost").rstrip("/")
+ADMIN_EMAIL = os.getenv("MB_ADMIN_USER")
+ADMIN_SENHA = os.getenv("MB_ADMIN_PASS")
+DB_NAME_MB  = os.getenv("MB_DB_DISPLAY_NAME", "FlowETL - SQL Server")
 DASH_NAME   = "Governança TI — Dashboard Executivo"
+
+if not ADMIN_EMAIL or not ADMIN_SENHA:
+    print("❌ Erro: MB_ADMIN_USER e MB_ADMIN_PASS devem estar definidas no .env")
+    sys.exit(1)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

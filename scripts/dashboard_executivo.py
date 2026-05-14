@@ -33,15 +33,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 load_dotenv()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BASE        = "https://localhost"
-ADMIN_EMAIL = "pcs@tf.com.br"
-ADMIN_SENHA = os.getenv("MSSQL_SA_PASSWORD", "")
-DB_HOST     = "sqlserver"
-DB_PORT     = 1433
-DB_NAME     = "HML-DBFLOWETL01"
-DB_USER     = "sa"
+BASE        = os.getenv("MB_SITE_URL", "https://localhost").rstrip("/")
+ADMIN_EMAIL = os.getenv("MB_ADMIN_USER")
+ADMIN_SENHA = os.getenv("MB_ADMIN_PASS")
+DB_HOST     = os.getenv("DB_HOST", "sqlserver")
+DB_PORT     = int(os.getenv("DB_PORT", "1433"))
+DB_NAME     = os.getenv("DB_NAME", "")
+DB_USER     = os.getenv("DB_USER", "sa")
 DB_PASS     = os.getenv("MSSQL_SA_PASSWORD", "")
 DASH_NAME   = "Governança TI — Dashboard Executivo"
+
+if not ADMIN_EMAIL or not ADMIN_SENHA:
+    print("❌ Erro: MB_ADMIN_USER e MB_ADMIN_PASS devem estar definidas no .env")
+    sys.exit(1)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
