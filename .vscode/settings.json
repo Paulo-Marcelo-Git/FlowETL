@@ -2,5 +2,15 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.terminal.useEnvFile": true,
   "python.envFile": "${workspaceFolder}/.env",
-  "git.path": "C:\\Users\\pcs_tf\\AppData\\Local\\GitHubDesktop\\app-3.5.8\\resources\\app\\git\\cmd\\git.exe"
+  "git.path": "C:\\Users\\pcs_tf\\AppData\\Local\\GitHubDesktop\\app-3.5.8\\resources\\app\\git\\cmd\\git.exe",
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": "string.quoted.double.env,string.unquoted.env,meta.value.env",
+        "settings": {
+          "foreground": "#444444"
+        }
+      }
+    ]
+  }
 }
