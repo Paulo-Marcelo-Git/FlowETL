@@ -148,7 +148,9 @@ def enfileirar(nm_arquivo: str, caminho: str, exc: Exception) -> None:
     """Insere ou ignora (idempotente) na tb_retry_queue."""
 
 def processar_fila() -> None:
-    """Job APScheduler — roda a cada 1 min. Processa entradas elegíveis."""
+    """Job APScheduler — roda a cada 1 min. Processa entradas elegíveis.
+    No início de cada ciclo, reseta entradas presas em 'processando' há
+    mais de 30 min de volta para 'aguardando' (recovery após crash do watcher)."""
 
 def _calcular_proxima_tentativa(tipo: str, tentativa: int) -> datetime:
     """Retorna datetime da próxima tentativa conforme tabela de backoff."""
@@ -202,6 +204,7 @@ return False
 | Job demora mais de 1 min | Status `'processando'` impede reentrada no mesmo ciclo |
 | Arquivo sumiu de `/erros/` | `FileNotFoundError` → classifica como `'dado'`, incrementa tentativas, loga aviso |
 | Banco fora durante o job | Exceção capturada, logada; job não propaga erro ao APScheduler |
+| Watcher cai com arquivo em `'processando'` | No próximo ciclo, `processar_fila` reseta entradas `'processando'` com `dt_ultima_tentativa` > 30 min atrás de volta para `'aguardando'` |
 | Reprocessamento manual bem-sucedido | Arquivo sai de `/erros/`; próximo ciclo detecta `FileNotFoundError` → marca `'desistiu'` com mensagem explicativa |
 
 ---
