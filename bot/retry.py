@@ -126,7 +126,10 @@ def processar_fila() -> None:
             """)).mappings().all()
 
         for row in rows:
-            _processar_entrada(engine, dict(row))
+            try:
+                _processar_entrada(engine, dict(row))
+            except Exception as entry_exc:
+                logger.error(f'processar_fila: erro em {row["nm_arquivo"]}: {entry_exc}')
 
     except Exception as exc:
         logger.error(f'processar_fila: erro inesperado: {exc}')
@@ -169,6 +172,8 @@ def _processar_entrada(engine, row: dict) -> None:
 
     try:
         sucesso = processar_arquivo(caminho)
+        # Se processar_arquivo falhar internamente, seu próprio except chamará
+        # enfileirar() — que é idempotente e ignorará pois a entrada está 'processando'.
         ds_erro = None if sucesso else 'processar_arquivo retornou False sem exceção'
     except Exception as exc:
         sucesso = False
