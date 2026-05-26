@@ -4,7 +4,7 @@
 IF OBJECT_ID('dbo.tb_retry_queue', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.tb_retry_queue (
-        id_retry             INT IDENTITY(1,1) PRIMARY KEY,
+        id_retry             INT IDENTITY(1,1) NOT NULL,
         nm_arquivo           VARCHAR(500)  NOT NULL,
         caminho_arquivo      VARCHAR(1000) NOT NULL,
         tipo_erro            VARCHAR(10)   NOT NULL,
@@ -15,7 +15,8 @@ BEGIN
         dt_ultima_tentativa  DATETIME      NULL,
         ds_ultimo_erro       VARCHAR(MAX)  NULL,
         ds_status            VARCHAR(20)   NOT NULL DEFAULT 'aguardando',
-        dt_insert            DATETIME      NOT NULL DEFAULT GETDATE()
+        dt_insert            DATETIME      NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT PK_tb_retry_queue PRIMARY KEY CLUSTERED (id_retry)
     );
     PRINT 'Tabela tb_retry_queue criada.';
 END

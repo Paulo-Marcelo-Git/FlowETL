@@ -63,7 +63,7 @@ IF NOT EXISTS (
 BEGIN
     CREATE UNIQUE INDEX uq_retry_arquivo_ativo
         ON dbo.tb_retry_queue (nm_arquivo)
-        WHERE ds_status = 'aguardando' OR ds_status = 'processando';
+        WHERE ds_status IN ('aguardando', 'processando');
     PRINT 'Índice uq_retry_arquivo_ativo criado.';
 END
 ELSE
