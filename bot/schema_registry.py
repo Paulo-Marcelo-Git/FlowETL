@@ -97,6 +97,14 @@ def registrar(
     nm_dashboard_mb: Optional[str] = None,
 ) -> None:
     """Insere ou atualiza entrada no schema registry."""
+    for valor, campo in [
+        (nm_tabela,   'nm_tabela'),
+        (nm_staging,  'nm_staging'),
+        (nm_sp_merge, 'nm_sp_merge'),
+        (nm_chave,    'nm_chave'),
+    ]:
+        _validar_identificador(valor, campo)
+
     colunas_base = json.dumps(sorted(c for c in colunas if c not in _IGNORAR_COLUNAS))
     try:
         engine = obter_engine()
