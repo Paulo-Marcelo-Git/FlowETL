@@ -17,7 +17,7 @@ from bot.alertas import iniciar_scheduler_relatorio, parar_scheduler
 from bot.etl import processar_arquivo
 from bot.logger import configurar_logger
 
-load_dotenv()
+load_dotenv(override=True)
 
 logger = configurar_logger(__name__)
 

@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 from bot.etl import processar_arquivo
 from bot.logger import configurar_logger
 
-load_dotenv()
+load_dotenv(override=True)
 logger = configurar_logger('reprocessar')
 
 BASE_DIR = Path(__file__).resolve().parent.parent

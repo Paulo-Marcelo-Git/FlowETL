@@ -14,7 +14,7 @@ import requests
 import urllib3
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

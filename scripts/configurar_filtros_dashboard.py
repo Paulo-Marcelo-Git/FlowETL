@@ -24,7 +24,7 @@ import urllib3
 from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-load_dotenv()
+load_dotenv(override=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE        = os.getenv("MB_SITE_URL", "https://localhost").rstrip("/")

@@ -18,7 +18,7 @@ from sqlalchemy import text
 
 from bot.logger import configurar_logger
 
-load_dotenv()
+load_dotenv(override=True)
 
 logger = configurar_logger(__name__)
 

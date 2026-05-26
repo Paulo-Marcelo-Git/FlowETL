@@ -23,7 +23,7 @@ def _validar_identificador(valor: str, campo: str) -> None:
     if not _IDENT_RE.match(valor):
         raise ValueError(f"Identificador inválido para '{campo}': {valor!r}")
 
-load_dotenv()
+load_dotenv(override=True)
 
 logger = configurar_logger(__name__)
 
