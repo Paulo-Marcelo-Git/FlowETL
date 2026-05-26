@@ -153,3 +153,87 @@ def atualizar_dashboard(nm_tabela: str, id_dashboard_mb: int, nm_dashboard_mb: s
             """), {'id_dash': id_dashboard_mb, 'nm_dash': nm_dashboard_mb, 't': nm_tabela})
     except Exception as exc:
         logger.error(f'schema_registry.atualizar_dashboard: {exc}')
+
+
+# ------------------------------------------------------------------ pipeline dinâmico
+
+def _gerar_nomes(nm_arquivo: str) -> tuple:
+    """Deriva (nm_tabela, nm_staging, nm_sp) do nome do arquivo."""
+    stem = Path(nm_arquivo).stem
+    base = re.sub(r'[^a-z0-9]', '_', stem.lower())
+    base = re.sub(r'_+', '_', base).strip('_')[:40]
+    return f'tb_{base}', f'stg_{base}', f'sp_merge_{base}'
+
+
+def _detectar_chave(colunas: list) -> str:
+    """Heurística para detectar coluna de chave primária."""
+    candidatos = {'id', 'numero', 'codigo', 'code', 'num', 'protocolo', 'chave'}
+    for c in colunas:
+        if c in candidatos or c.startswith('id_') or c.endswith('_id') or c.endswith('_num'):
+            return c
+    return colunas[0]
+
+
+def criar_pipeline_novo(nm_arquivo: str, colunas: list) -> dict:
+    """
+    Cria tabelas staging + produção + SP MERGE para um schema desconhecido.
+    Registra no tb_schema_registry.
+    Retorna {'nm_tabela', 'nm_staging', 'nm_sp_merge', 'nm_chave'}.
+    """
+    from bot.database import _reconstruir_sp_merge
+
+    colunas_dados = [c for c in colunas if c not in _IGNORAR_COLUNAS]
+    nm_tabela, nm_staging, nm_sp = _gerar_nomes(nm_arquivo)
+
+    # Resolver conflito de nome se tabela já existe
+    engine = obter_engine()
+    sufixo = 1
+    nm_base = nm_tabela
+    with engine.connect() as conn:
+        while conn.execute(
+            text("SELECT OBJECT_ID(:t)"), {'t': f'dbo.{nm_tabela}'}
+        ).scalar() is not None:
+            nm_tabela = f'{nm_base}_{sufixo}'
+            nm_staging = f'stg_{nm_base[3:]}_{sufixo}'
+            nm_sp = f'sp_merge_{nm_base[3:]}_{sufixo}'
+            sufixo += 1
+
+    for valor, campo in [(nm_tabela, 'nm_tabela'), (nm_staging, 'nm_staging'),
+                         (nm_sp, 'nm_sp')]:
+        _validar_identificador(valor, campo)
+
+    chave = _detectar_chave(colunas_dados)
+    colunas_sem_chave = [c for c in colunas_dados if c != chave]
+
+    col_defs = ',\n    '.join(
+        f'[{c}] VARCHAR(MAX) NULL' for c in colunas_sem_chave + ['nm_arquivo_origem']
+    )
+
+    with engine.begin() as conn:
+        conn.execute(text(f"""
+            CREATE TABLE dbo.{nm_staging} (
+                [{chave}] VARCHAR(500) NULL,
+                {col_defs}
+            )
+        """))
+        conn.execute(text(f"""
+            CREATE TABLE dbo.{nm_tabela} (
+                [{chave}]      VARCHAR(500) NOT NULL,
+                {col_defs},
+                dt_insert      DATETIME NOT NULL DEFAULT GETDATE(),
+                dt_atualizacao DATETIME NULL,
+                CONSTRAINT PK_{nm_tabela} PRIMARY KEY ([{chave}])
+            )
+        """))
+
+    logger.info(f'Tabelas criadas: {nm_staging}, {nm_tabela}')
+    _reconstruir_sp_merge(nm_staging, nm_tabela, nm_sp, chave)
+
+    registrar(nm_tabela, nm_staging, nm_sp, chave, colunas_dados)
+
+    return {
+        'nm_tabela':   nm_tabela,
+        'nm_staging':  nm_staging,
+        'nm_sp_merge': nm_sp,
+        'nm_chave':    chave,
+    }
