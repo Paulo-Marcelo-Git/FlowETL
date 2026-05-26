@@ -175,6 +175,8 @@ def sincronizar_colunas(
     Compara colunas do DataFrame com a tabela staging.
     Adiciona colunas novas via ALTER TABLE e recria a SP de MERGE.
     """
+    if chave is None:
+        raise ValueError(f'sincronizar_colunas: chave não pode ser None (tabela={nm_producao!r})')
     engine = obter_engine()
     controle = {'dt_insert', 'dt_atualizacao'}
 

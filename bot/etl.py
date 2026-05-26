@@ -125,7 +125,7 @@ def processar_arquivo(caminho_arquivo: str, skip_retry: bool = False) -> bool:
         aba_excel   = 0
         cfg_limpeza = {}
         chave       = None
-        nm_tabela   = None
+        nm_tabela   = nm_arquivo
         modo_discovery = True
 
     qt_recebidas = qt_inseridas = qt_rejeitadas = 0
