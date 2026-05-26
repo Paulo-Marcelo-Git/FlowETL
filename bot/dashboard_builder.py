@@ -4,6 +4,7 @@ Detecta padrões de colunas e gera cards apropriados (bar, pie, scalar).
 """
 
 import os
+import re
 
 import requests
 import urllib3
@@ -14,6 +15,8 @@ from bot.logger import configurar_logger
 load_dotenv(override=True)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = configurar_logger(__name__)
+
+_IDENT_RE = re.compile(r'^[A-Za-z0-9_]+$')
 
 # Padrões: (lista de nomes candidatos, tipo display, título do card)
 _PADROES = [
@@ -86,6 +89,9 @@ def _inferir_cards(colunas: list, nm_tabela: str, db_id: int) -> list:
         col = next((c for c in uteis if _col_bate(c, padroes)), None)
         if not col:
             continue
+        if not _IDENT_RE.match(col):
+            logger.warning(f'_inferir_cards: coluna inválida ignorada: {col!r}')
+            continue
         if display == 'bar':
             query = (f'SELECT [{col}], COUNT(*) AS qt FROM dbo.{nm_tabela} '
                      f'WHERE [{col}] IS NOT NULL GROUP BY [{col}] ORDER BY qt DESC')
@@ -144,6 +150,9 @@ def criar_dashboard_automatico(nm_tabela: str, colunas: list) -> tuple:
             except Exception as exc:
                 logger.warning(f'Falha ao criar card "{spec["name"]}": {exc}')
 
+        if not card_ids:
+            raise RuntimeError('Nenhum card criado com sucesso — dashboard não será criado')
+
         # Criar dashboard
         r = requests.post(f'{base}/api/dashboard', headers=headers,
                           json={'name': nm_dash, 'collection_id': None},
@@ -155,12 +164,12 @@ def criar_dashboard_automatico(nm_tabela: str, colunas: list) -> tuple:
         dashcards = []
         for i, cid in enumerate(card_ids):
             if i == 0:
-                row, col_pos, size_x, size_y = 0, 0, 18, 4
+                row, col_pos, size_x, size_y = 0, 0, 24, 4
             else:
                 j = i - 1
                 row     = 4 + (j // 2) * 6
-                col_pos = (j % 2) * 9
-                size_x  = 9
+                col_pos = (j % 2) * 12
+                size_x  = 12
                 size_y  = 6
             dashcards.append({
                 'id': -(i + 1),
