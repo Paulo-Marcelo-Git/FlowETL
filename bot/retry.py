@@ -4,14 +4,11 @@ Classifica erros em 'infra' ou 'dado', persiste estado em tb_retry_queue
 e reprocessa automaticamente com backoff exponencial.
 """
 
-import os
 from datetime import datetime, timedelta
 from typing import Literal
 
-from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from bot.database import obter_engine
 from bot.logger import configurar_logger
 
 logger = configurar_logger(__name__)
