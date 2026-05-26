@@ -15,7 +15,7 @@ from typing import Optional
 import pandas as pd
 
 from bot.alertas import alerta_falha_telegram, alerta_sucesso_telegram
-from bot.database import TABELA_CONFIG, carregar_staging, executar_merge, obter_engine, sincronizar_colunas
+from bot.database import carregar_staging, executar_merge, obter_db_config, obter_engine, sincronizar_colunas
 from bot.logger import configurar_logger, registrar_log_banco
 
 logger = configurar_logger(__name__)
@@ -111,59 +111,82 @@ def processar_arquivo(caminho_arquivo: str, skip_retry: bool = False) -> bool:
     config = _carregar_config()
     prefixo = _identificar_prefixo(nm_arquivo, config)
 
-    if prefixo is None:
-        msg = f'Nenhum prefixo em tabelas.json corresponde ao arquivo "{nm_arquivo}". Ignorado.'
-        logger.warning(msg)
-        return False
-
-    cfg_tabela = config[prefixo]
-    nm_tabela = cfg_tabela['tabela']
-    aba_excel = cfg_tabela.get('aba_excel', 0)
-
-    db_config = TABELA_CONFIG.get(nm_tabela)
-    if db_config is None:
-        msg = f'Tabela "{nm_tabela}" não encontrada em database.TABELA_CONFIG.'
-        logger.error(msg)
-        alerta_falha_telegram(nm_arquivo, msg)
-        return False
+    if prefixo is not None:
+        # Caminho 1: tabelas.json (comportamento original preservado)
+        cfg_tabela = config[prefixo]
+        nm_tabela  = cfg_tabela['tabela']
+        aba_excel  = cfg_tabela.get('aba_excel', 0)
+        chave      = cfg_tabela['chave']
+        cfg_limpeza = cfg_tabela
+        modo_discovery = False
+    else:
+        # Caminho 2: auto-discovery
+        logger.info(f'Prefixo não encontrado em tabelas.json — iniciando auto-discovery para {nm_arquivo}')
+        aba_excel   = 0
+        cfg_limpeza = {}
+        chave       = None
+        nm_tabela   = None
+        modo_discovery = True
 
     qt_recebidas = qt_inseridas = qt_rejeitadas = 0
     ds_erro = None
 
     try:
-        # 1-2. Ler xlsx na aba correta
         logger.info(f'Lendo aba "{aba_excel}" de {nm_arquivo}')
         df = pd.read_excel(caminho, sheet_name=aba_excel, dtype=str)
 
         qt_recebidas = len(df)
         logger.info(f'{qt_recebidas} linhas brutas lidas.')
 
-        # 3-7. Limpar e transformar
-        df = _limpar_dataframe(df, cfg_tabela)
-
-        # Adicionar coluna de rastreabilidade
+        df = _limpar_dataframe(df, cfg_limpeza)
         df['nm_arquivo_origem'] = nm_arquivo
 
         qt_rejeitadas = qt_recebidas - len(df)
         logger.info(f'Após limpeza: {len(df)} linhas válidas, {qt_rejeitadas} rejeitadas.')
 
-        # 8a. Sincronizar schema: adiciona colunas novas ao banco automaticamente
+        if modo_discovery:
+            from bot.schema_registry import buscar_match, criar_pipeline_novo
+            match = buscar_match(list(df.columns))
+            if match:
+                nm_tabela = match['nm_tabela']
+                chave     = match['nm_chave']
+                db_config = {'staging': match['nm_staging'], 'sp_merge': match['nm_sp_merge']}
+                logger.info(f'Auto-discovery: match com {nm_tabela}')
+            else:
+                logger.info(f'Auto-discovery: schema novo — criando pipeline para {nm_arquivo}')
+                pipeline  = criar_pipeline_novo(nm_arquivo, list(df.columns))
+                nm_tabela = pipeline['nm_tabela']
+                chave     = pipeline['nm_chave']
+                db_config = {'staging': pipeline['nm_staging'], 'sp_merge': pipeline['nm_sp_merge']}
+                try:
+                    from bot.dashboard_builder import criar_dashboard_automatico
+                    from bot.schema_registry import atualizar_dashboard
+                    dash_id, nm_dash = criar_dashboard_automatico(nm_tabela, list(df.columns))
+                    if dash_id > 0:
+                        atualizar_dashboard(nm_tabela, dash_id, nm_dash)
+                except Exception as dash_exc:
+                    logger.warning(f'Dashboard auto-criação falhou (não crítico): {dash_exc}')
+        else:
+            db_config = obter_db_config(nm_tabela)
+            if db_config is None:
+                msg = f'Tabela "{nm_tabela}" não encontrada em TABELA_CONFIG nem no schema_registry.'
+                logger.error(msg)
+                alerta_falha_telegram(nm_arquivo, msg)
+                return False
+
         sincronizar_colunas(
             df,
             nm_staging=db_config['staging'],
             nm_producao=nm_tabela,
             nm_sp=db_config['sp_merge'],
-            chave=cfg_tabela['chave'],
+            chave=chave,
         )
 
-        # 8b. Inserir na staging
         carregar_staging(df, db_config['staging'])
 
-        # 9. Executar MERGE
         inseridas, atualizadas = executar_merge(db_config['sp_merge'])
         qt_inseridas = inseridas + atualizadas
 
-        # 10. Registrar log no banco
         engine = obter_engine()
         registrar_log_banco(
             engine=engine,
@@ -177,9 +200,8 @@ def processar_arquivo(caminho_arquivo: str, skip_retry: bool = False) -> bool:
             tm_duracao_seg=time.time() - inicio,
         )
 
-        # 11. Mover para /processados/YYYY-MM/
         subpasta = datetime.now().strftime('%Y-%m')
-        destino = _mover_arquivo(caminho, PROCESSADOS_DIR, subpasta)
+        destino  = _mover_arquivo(caminho, PROCESSADOS_DIR, subpasta)
         logger.info(f'Arquivo movido para {destino}')
 
         alerta_sucesso_telegram(nm_arquivo, qt_inseridas)

@@ -207,3 +207,15 @@ TABELA_CONFIG = {
         'sp_merge': 'sp_merge_problemas_gov_ti',
     }
 }
+
+
+def obter_db_config(nm_tabela: str) -> Optional[dict]:
+    """Retorna {'staging', 'sp_merge'} verificando TABELA_CONFIG e depois schema_registry."""
+    if nm_tabela in TABELA_CONFIG:
+        return TABELA_CONFIG[nm_tabela]
+    try:
+        from bot.schema_registry import buscar_config_por_tabela
+        return buscar_config_por_tabela(nm_tabela)
+    except Exception as exc:
+        logger.error(f'obter_db_config: erro ao consultar schema_registry: {exc}')
+    return None
