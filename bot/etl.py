@@ -145,6 +145,14 @@ def processar_arquivo(caminho_arquivo: str, skip_retry: bool = False) -> bool:
         logger.info(f'Após limpeza: {len(df)} linhas válidas, {qt_rejeitadas} rejeitadas.')
 
         if modo_discovery:
+            # Filtrar colunas com nomes inválidos para SQL (vazias, só números, etc.)
+            _IDENT_VALIDO = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+            colunas_validas = [c for c in df.columns if _IDENT_VALIDO.match(str(c))]
+            colunas_removidas = [c for c in df.columns if c not in colunas_validas]
+            if colunas_removidas:
+                logger.info(f'Auto-discovery: removendo colunas com nomes inválidos: {colunas_removidas}')
+                df = df[colunas_validas]
+
             from bot.schema_registry import buscar_match, criar_pipeline_novo
             match = buscar_match(list(df.columns))
             if match:

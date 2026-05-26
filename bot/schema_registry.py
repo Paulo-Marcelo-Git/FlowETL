@@ -28,12 +28,39 @@ def _validar_identificador(valor: str, campo: str) -> None:
         raise ValueError(f"Identificador inválido para '{campo}': {valor!r}")
 
 
+def _normalizar_col(nome: str) -> str:
+    """Remove underscores e vogais para comparação fuzzy de colunas.
+
+    Isso permite casar colunas renomeadas pelo config (ex: 'numero') com
+    colunas brutas do Excel sanitizadas (ex: 'n_mero' de 'Número').
+    """
+    sem_under = nome.replace('_', '').lower()
+    return re.sub(r'[aeiou]', '', sem_under)
+
+
+def _score_match(colunas_df: set, colunas_base: set) -> float:
+    """Retorna o maior score entre comparação exata e comparação normalizada."""
+    # Score exato
+    score_exato = len(colunas_df & colunas_base) / len(colunas_base)
+
+    # Score fuzzy: via vowel-stripped normalization
+    norm_df   = {_normalizar_col(c) for c in colunas_df if c}
+    norm_base = {_normalizar_col(c) for c in colunas_base if c}
+    if norm_base:
+        score_fuzzy = len(norm_df & norm_base) / len(norm_base)
+    else:
+        score_fuzzy = 0.0
+
+    return max(score_exato, score_fuzzy)
+
+
 # ------------------------------------------------------------------ match
 
 def buscar_match(colunas_df: list) -> Optional[dict]:
     """
     Busca schema em tb_schema_registry onde >= 80% das colunas base
-    estão presentes em colunas_df. Retorna o dict do registro ou None.
+    estão presentes em colunas_df (comparação exata ou normalizada).
+    Retorna o dict do registro ou None.
     """
     colunas_set = set(colunas_df) - _IGNORAR_COLUNAS
 
@@ -57,7 +84,7 @@ def buscar_match(colunas_df: list) -> Optional[dict]:
             continue
         if not colunas_base:
             continue
-        score = len(colunas_set & colunas_base) / len(colunas_base)
+        score = _score_match(colunas_set, colunas_base)
         if score >= _MATCH_THRESHOLD and score > melhor_score:
             melhor_score = score
             melhor = dict(row)
