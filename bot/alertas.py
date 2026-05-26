@@ -237,6 +237,7 @@ def iniciar_scheduler_relatorio() -> None:
         verificar_e_alertar as _monitorar_metabase,
         reescanear_campos_metabase as _reescanear_campos,
     )
+    from bot.retry import processar_fila as _processar_fila_retry
 
     _scheduler = BackgroundScheduler(timezone='America/Sao_Paulo')
     _scheduler.add_job(
@@ -261,8 +262,18 @@ def iniciar_scheduler_relatorio() -> None:
         id='rescan_campos_metabase',
         replace_existing=True,
     )
+    _scheduler.add_job(
+        func=_processar_fila_retry,
+        trigger='interval',
+        minutes=1,
+        id='retry_queue',
+        replace_existing=True,
+    )
     _scheduler.start()
-    logger.info('Scheduler iniciado: relatório 08:00 BRT | monitor + rescan Metabase a cada 5 min.')
+    logger.info(
+        'Scheduler iniciado: relatório 08:00 BRT | monitor + rescan Metabase a cada 5 min '
+        '| retry_queue a cada 1 min.'
+    )
 
 
 def parar_scheduler() -> None:
