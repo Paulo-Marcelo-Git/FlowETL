@@ -190,8 +190,9 @@ def processar_arquivo(caminho_arquivo: str) -> bool:
         logger.error(f'Erro ao processar {nm_arquivo}: {ds_erro}', exc_info=True)
 
         # 12. Mover para /erros/ e disparar alertas
+        caminho_em_erros = ERROS_DIR / nm_arquivo  # fallback se o move falhar
         try:
-            _mover_arquivo(caminho, ERROS_DIR)
+            caminho_em_erros = _mover_arquivo(caminho, ERROS_DIR)
         except Exception as move_exc:
             logger.error(f'Falha ao mover arquivo para erros/: {move_exc}')
 
@@ -211,5 +212,7 @@ def processar_arquivo(caminho_arquivo: str) -> bool:
         except Exception as log_exc:
             logger.error(f'Falha ao registrar log de erro no banco: {log_exc}')
 
+        from bot.retry import enfileirar
+        enfileirar(nm_arquivo, str(caminho_em_erros), exc)
         alerta_falha_telegram(nm_arquivo, ds_erro)
         return False
