@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = BASE_DIR / 'config' / 'tabelas.json'
 PROCESSADOS_DIR = BASE_DIR / 'processados'
 ERROS_DIR = BASE_DIR / 'erros'
+_IDENT_VALIDO = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
 
 def _carregar_config() -> dict:
@@ -146,7 +147,6 @@ def processar_arquivo(caminho_arquivo: str, skip_retry: bool = False) -> bool:
 
         if modo_discovery:
             # Filtrar colunas com nomes inválidos para SQL (vazias, só números, etc.)
-            _IDENT_VALIDO = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
             colunas_validas = [c for c in df.columns if _IDENT_VALIDO.match(str(c))]
             colunas_removidas = [c for c in df.columns if c not in colunas_validas]
             if colunas_removidas:
