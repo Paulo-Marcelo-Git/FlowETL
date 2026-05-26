@@ -25,16 +25,15 @@ GO
 
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
-    WHERE name = 'ix_retry_arquivo_status'
+    WHERE name = 'uq_retry_arquivo_ativo'
       AND object_id = OBJECT_ID('dbo.tb_retry_queue')
 )
 BEGIN
-    -- Índice para buscas por arquivo + status (aguardando/processando)
-    -- SQL Server não suporta OR em filtered indexes; usa índice composto não filtrado
-    CREATE INDEX ix_retry_arquivo_status
-        ON dbo.tb_retry_queue (nm_arquivo, ds_status);
-    PRINT 'Índice ix_retry_arquivo_status criado.';
+    CREATE UNIQUE INDEX uq_retry_arquivo_ativo
+        ON dbo.tb_retry_queue (nm_arquivo)
+        WHERE ds_status IN ('aguardando', 'processando');
+    PRINT 'Índice uq_retry_arquivo_ativo criado.';
 END
 ELSE
-    PRINT 'Índice ix_retry_arquivo_status já existe — ignorado.';
+    PRINT 'Índice uq_retry_arquivo_ativo já existe — ignorado.';
 GO
