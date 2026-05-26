@@ -40,7 +40,7 @@ def reprocessar_arquivo(caminho: str) -> bool:
         return False
 
     logger.info(f'Reprocessando: {path}')
-    return processar_arquivo(str(path))
+    return processar_arquivo(str(path), skip_retry=True)
 
 
 def reprocessar_todos() -> None:

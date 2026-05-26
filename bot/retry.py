@@ -158,8 +158,8 @@ def _processar_entrada(engine, row: dict) -> None:
                 SET ds_status = 'desistiu', qt_tentativas = :qt,
                     ds_ultimo_erro = :msg, dt_ultima_tentativa = GETDATE()
                 WHERE id_retry = :id
-            """), {'qt': nova_tentativa, 'msg': msg, 'id': id_retry})
-        alerta_retry_desistiu(nm_arquivo, tipo, nova_tentativa, max_t, msg)
+            """), {'qt': qt, 'msg': msg, 'id': id_retry})
+        alerta_retry_desistiu(nm_arquivo, tipo, qt, max_t, msg)
         return
 
     # Marcar como processando para evitar reentrada no mesmo ciclo

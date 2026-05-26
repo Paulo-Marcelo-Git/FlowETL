@@ -96,10 +96,11 @@ def _limpar_dataframe(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     return df
 
 
-def processar_arquivo(caminho_arquivo: str) -> bool:
+def processar_arquivo(caminho_arquivo: str, skip_retry: bool = False) -> bool:
     """
     Processa um único arquivo .xlsx.
     Retorna True em caso de sucesso, False em caso de falha.
+    skip_retry=True evita enfileirar na fila de retry (usar em reprocessamento manual).
     """
     inicio = time.time()
     caminho = Path(caminho_arquivo)
@@ -212,7 +213,8 @@ def processar_arquivo(caminho_arquivo: str) -> bool:
         except Exception as log_exc:
             logger.error(f'Falha ao registrar log de erro no banco: {log_exc}')
 
-        from bot.retry import enfileirar
-        enfileirar(nm_arquivo, str(caminho_em_erros), exc)
+        if not skip_retry:
+            from bot.retry import enfileirar
+            enfileirar(nm_arquivo, str(caminho_em_erros), exc)
         alerta_falha_telegram(nm_arquivo, ds_erro)
         return False

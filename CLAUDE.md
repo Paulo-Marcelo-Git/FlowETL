@@ -465,23 +465,25 @@ python scripts/reprocessar.py --todos
 4. `sql/000_create_database.sql` → bancos HML/PRD
 5. `sql/003_create_log.sql` → tb_log_etl
 6. `sql/006_create_log_metabase.sql` → tb_log_metabase
-7. `sql/001_create_staging.sql` → stg_problemas_gov_ti
-8. `sql/002_create_producao.sql` → tb_problemas_gov_ti + índices
-9. `sql/004_stored_procedures.sql` → sp_merge_problemas_gov_ti
-10. `sql/005_views_kpi.sql` → 9 views KPI
-11. `bot/logger.py`
-12. `bot/database.py` (incluindo TABELA_CONFIG e sincronizar_colunas)
-13. `bot/monitor_metabase.py`
-14. `bot/alertas.py` (APScheduler com 3 jobs)
-15. `bot/etl.py`
-16. `bot/watcher.py` (PollingObserver — compatível com WSL2/Samba)
-17. `scripts/reprocessar.py`
-18. `scripts/watcher.sh`
-19. Scripts Metabase (`setup_metabase.py`, `criar_dashboard_metabase.py`, etc.)
-20. `docker-compose.yml`
-21. `nginx/metabase.conf`
-22. `flowetl.service`
-23. `README.md`
+7. `sql/007_create_retry_queue.sql` → tb_retry_queue (fila de retry automático)
+9. `sql/001_create_staging.sql` → stg_problemas_gov_ti
+10. `sql/002_create_producao.sql` → tb_problemas_gov_ti + índices
+11. `sql/004_stored_procedures.sql` → sp_merge_problemas_gov_ti
+12. `sql/005_views_kpi.sql` → 9 views KPI
+13. `bot/logger.py`
+14. `bot/database.py` (incluindo TABELA_CONFIG e sincronizar_colunas)
+15. `bot/monitor_metabase.py`
+16. `bot/alertas.py` (APScheduler com 4 jobs: relatório, monitor, rescan, retry_queue)
+17. `bot/retry.py` (fila de retry: classificar_erro, enfileirar, processar_fila)
+18. `bot/etl.py`
+19. `bot/watcher.py` (PollingObserver — compatível com WSL2/Samba)
+20. `scripts/reprocessar.py`
+21. `scripts/watcher.sh`
+22. Scripts Metabase (`setup_metabase.py`, `criar_dashboard_metabase.py`, etc.)
+23. `docker-compose.yml`
+24. `nginx/metabase.conf`
+25. `flowetl.service`
+26. `README.md`
 
 ---
 
