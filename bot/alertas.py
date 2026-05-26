@@ -72,6 +72,37 @@ def alerta_sucesso_telegram(nm_arquivo: str, qt_linhas: int) -> None:
     enviar_telegram(mensagem)
 
 
+def alerta_retry_sucesso(nm_arquivo: str, tentativa: int, max_tentativas: int) -> None:
+    """Alerta Telegram quando um retry automático tem sucesso."""
+    agora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    mensagem = (
+        '<b>🔁 FlowETL — Retry bem-sucedido</b>\n'
+        f'📄 Arquivo: <code>{nm_arquivo}</code>\n'
+        f'🔢 Tentativa: {tentativa}/{max_tentativas}\n'
+        f'⏱️ Horário: {agora}'
+    )
+    enviar_telegram(mensagem)
+
+
+def alerta_retry_desistiu(
+    nm_arquivo: str,
+    tipo_erro: str,
+    tentativas: int,
+    max_tentativas: int,
+    ultimo_erro: str,
+) -> None:
+    """Alerta Telegram quando o sistema desiste de reprocessar um arquivo."""
+    agora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    mensagem = (
+        '<b>⛔ FlowETL — Desistindo do arquivo</b>\n'
+        f'📄 Arquivo: <code>{nm_arquivo}</code>\n'
+        f'🔴 Tipo: {tipo_erro} | Tentativas: {tentativas}/{max_tentativas}\n'
+        f'💬 Último erro: {ultimo_erro[:200]}\n'
+        f'⏱️ Horário: {agora}'
+    )
+    enviar_telegram(mensagem)
+
+
 # -------------------------------------------------------------------- Email
 
 def _enviar_email(assunto: str, corpo_html: str) -> None:
