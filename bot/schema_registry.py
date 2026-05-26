@@ -171,6 +171,7 @@ def _detectar_chave(colunas: list) -> str:
     for c in colunas:
         if c in candidatos or c.startswith('id_') or c.endswith('_id') or c.endswith('_num'):
             return c
+    logger.warning(f'_detectar_chave: nenhum candidato encontrado, usando {colunas[0]!r} como chave')
     return colunas[0]
 
 
@@ -183,6 +184,10 @@ def criar_pipeline_novo(nm_arquivo: str, colunas: list) -> dict:
     from bot.database import _reconstruir_sp_merge
 
     colunas_dados = [c for c in colunas if c not in _IGNORAR_COLUNAS]
+
+    if not colunas_dados:
+        raise ValueError(f"Nenhuma coluna de dados disponível para criar pipeline: {nm_arquivo!r}")
+
     nm_tabela, nm_staging, nm_sp = _gerar_nomes(nm_arquivo)
 
     # Resolver conflito de nome se tabela já existe
@@ -203,6 +208,7 @@ def criar_pipeline_novo(nm_arquivo: str, colunas: list) -> dict:
         _validar_identificador(valor, campo)
 
     chave = _detectar_chave(colunas_dados)
+    _validar_identificador(chave, 'chave')
     colunas_sem_chave = [c for c in colunas_dados if c != chave]
 
     col_defs = ',\n    '.join(
@@ -227,9 +233,17 @@ def criar_pipeline_novo(nm_arquivo: str, colunas: list) -> dict:
         """))
 
     logger.info(f'Tabelas criadas: {nm_staging}, {nm_tabela}')
-    _reconstruir_sp_merge(nm_staging, nm_tabela, nm_sp, chave)
 
-    registrar(nm_tabela, nm_staging, nm_sp, chave, colunas_dados)
+    try:
+        _reconstruir_sp_merge(nm_staging, nm_tabela, nm_sp, chave)
+        registrar(nm_tabela, nm_staging, nm_sp, chave, colunas_dados)
+    except Exception as exc:
+        logger.error(f'criar_pipeline_novo: falha pós-criação, revertendo tabelas: {exc}')
+        with engine.begin() as conn:
+            conn.execute(text(f"IF OBJECT_ID('dbo.{nm_sp}','P') IS NOT NULL DROP PROCEDURE dbo.{nm_sp}"))
+            conn.execute(text(f"IF OBJECT_ID('dbo.{nm_staging}','U') IS NOT NULL DROP TABLE dbo.{nm_staging}"))
+            conn.execute(text(f"IF OBJECT_ID('dbo.{nm_tabela}','U') IS NOT NULL DROP TABLE dbo.{nm_tabela}"))
+        raise
 
     return {
         'nm_tabela':   nm_tabela,
